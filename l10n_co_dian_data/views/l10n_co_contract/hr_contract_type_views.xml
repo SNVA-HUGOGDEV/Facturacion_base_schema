@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <record id="hr_contract_type_view_form" model="ir.ui.view">
+        <field name="name">hr.contract.type.view.form</field>
+        <field name="model">hr.contract.type</field>
+        <field name="arch" type="xml">
+            <form string="Contract Type">
+                <sheet>
+                    <group>
+                        <field name="name" />
+                        <field name="dian_contract_type" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

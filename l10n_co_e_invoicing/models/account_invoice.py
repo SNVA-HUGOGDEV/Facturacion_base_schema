@@ -1,0 +1,42 @@
+from odoo import models, fields
+import logging
+_logger = logging.getLogger(__name__)
+
+class ProductTemplate(models.Model):
+    _inherit = 'product.template'
+    tipo_ingreso = fields.Selection([('ip', 'Ingreso Propio'), ('it', 'Ingreso Tercero')], string='Tipo de ingreso')
+
+class AccountInvoice(models.Model):
+    _inherit = 'account.move'
+    show_report_cop = fields.Boolean(string='Doble moneda', default=False)
+    payment_mean_id = fields.Many2one(comodel_name='account.payment.mean', string='Payment Method')
+    approve_token = fields.Char(string='Access Token for approve', copy=False)
+    invoice_rating = fields.Selection(selection=[('not_rating', 'No Calificada'), ('approve', 'Aprobada'), ('refuse', 'Rechazada'), ('auto_approve', 'Aprobada por Vencimiento')], string='Aprobación de Factura', default='', copy=False)
+    refuse_text = fields.Text(string='Motivo del rechazo', copy=False)
+    dian_document_lines = fields.One2many('account.invoice.dian.document', 'invoice_id', string='Dian Document Lines')
+    operation_type = fields.Selection([('09', 'AIU'), ('10', 'Standard *'), ('11', 'Mandatos'), ('20', 'Credit note that references an e-invoice'), ('22', 'Credit note without reference to invoices *'), ('30', 'Debit note that references an e-invoice'), ('32', 'Debit note without reference to invoices *')], string='Operation Type', default='10')
+    invoice_type_code = fields.Selection([('01', 'Factura de Venta'), ('02', 'Factura de Venta Exportación'), ('03', 'Factura por Contingencia Facturador'), ('04', 'Factura por Contingencia DIAN')], string='Invoice Type', default='01')
+    send_invoice_to_dian = fields.Selection([('0', 'Immediately'), ('1', 'After 1 Day'), ('2', 'After 2 Days')], string='Send Invoice to DIAN?', default='0')
+    trm = fields.Float()
+    is_invoice_out_odoo = fields.Boolean('Creada fuera de odoo?')
+    id_invoice_refound = fields.Char('Factura')
+    uuid_invoice = fields.Char('Cufe')
+    issue_date_invoice = fields.Date('Fecha')
+    customizationid_invoice = fields.Integer(string='Tipo de operación Factura', default=10)
+    aiu = fields.Char(string='AIU')
+    credit_note_ids = fields.One2many('account.move', 'reversed_entry_id', string='Notas crédito')
+    credit_note_count = fields.Integer('Number of Credit Notes')
+    mandante_id = fields.Many2one('res.partner', string='Mandante')
+    warn_pfx = fields.Boolean(string='Certificado DIAN por vencer', store=False)
+    pfx_available_days = fields.Integer(string='Días disponibles', store=False)
+    status_dian_document = fields.Selection([('00', 'Procesado Correctamente'), ('66', 'NSU no encontrado'), ('90', 'TrackId no encontrado'), ('99', 'Validaciones contienen errores en campos mandatorios'), ('111', 'Tiene más de un documento DIAN'), ('other', 'Other')], string='Estado doc. DIAN', default=False)
+    orden_compra = fields.Char(string='Orden de compra')
+    cufe_cude = fields.Char(string='CUFE/CUDE')
+    total_ingreso_propio = fields.Float(string='Total Ingreso Propio')
+    total_ingreso_tercero = fields.Float(string='Total Ingreso Tercero')
+    total_en_pesos = fields.Float(string='Total en Pesos', store=True)
+    eta = fields.Date(string='ETA')
+    etd = fields.Date(string='ETD')
+    doc_transporte = fields.Char(string='Doc. Transporte')
+    start_invoice_period = fields.Date(string='Inicio periodo de facturación', store=True)
+    end_invoice_period = fields.Date(string='Fin periodo de facturación', store=True)

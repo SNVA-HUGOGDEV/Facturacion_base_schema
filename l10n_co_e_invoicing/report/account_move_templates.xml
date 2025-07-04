@@ -1,0 +1,1326 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="report_e_invoice">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-set="lang"
+                        t-value="o.invoice_user_id.sudo().lang if o.move_type in ('in_invoice', 'in_refund') else o.partner_id.lang" />
+                    <t t-call="l10n_co_e_invoicing.report_e_invoice_document" t-lang="lang" />
+                </t>
+            </t>
+        </template>
+
+        <template id="l10n_co_e_invoicing.extend_layout">
+            <t t-if="not o" t-set="o" t-value="doc" />
+            <t t-if="not company">
+                <!-- Multicompany -->
+                <t t-if="company_id">
+                    <t t-set="company" t-value="company_id" />
+                </t>
+                <t t-elif="o and 'company_id' in o">
+                    <t t-set="company" t-value="o.company_id.sudo()" />
+                </t>
+                <t t-else="else">
+                    <t t-set="company" t-value="res_company" />
+                </t>
+            </t>
+
+            <div class="article o_report_layout_standard"
+                t-att-data-oe-model="o and o._name"
+                t-att-data-oe-id="o and o.id"
+                t-att-data-oe-lang="o and o.env.context.get('lang')">
+                <t t-call="web.address_layout" />
+                <t t-raw="0" />
+            </div>
+
+            <t t-call="l10n_co_e_invoicing.report_header" />
+            <t t-raw="0" />
+            <t t-call="l10n_co_e_invoicing.report_footer" />
+        </template>
+
+        <template id="l10n_co_e_invoicing.report_header">
+            <div class="header">
+                <div class="row">
+                    <!-- Logo -->
+                    <div class="col-3 mb-4">
+                        <img t-if="o.company_id.logo" t-att-src="image_data_uri(o.company_id.logo)"
+                            style="max-height: 100px; max-width: 270px;" class="img-fluid"
+                            alt="Logo" />
+                    </div>
+                    <!-- Información de la empresa -->
+                    <div class="col-6 text-center" style="font-size:12px;" name="company_address">
+                        <b>
+                            <div t-field="o.company_id.partner_id"
+                                t-field-options='{"widget": "contact", "fields": ["name"], "no_marker": true}'
+                            />
+                        </b>
+                        <span>
+                        NIT: </span>
+                        <span t-esc="o.company_id.partner_id.vat" />
+                        <t
+                            t-if="o.company_id.partner_id.check_digit  != False">
+                            <span> - </span>
+                            <span t-esc="o.company_id.partner_id.check_digit" />
+                        </t>
+                        <br />
+                        <span
+                            t-esc="o.company_id.partner_id.street" />
+                        <br />
+                        <span>Teléfonos: </span>
+                        <span
+                            t-esc="o.company_id.partner_id.phone" />
+                        <br />
+                        <span
+                            t-esc="o.company_id.partner_id.city" /> - <span
+                            t-esc="o.company_id.partner_id.country_id.name" />
+                        <br />
+                        <span>E-mail: </span>
+                        <span
+                            t-esc="o.company_id.partner_id.email" />
+                    </div>
+                    <!-- Código QR -->
+                    <div id="cufe" class="col-3 mb-4">
+                        <t t-if="o.company_id.einvoicing_enabled == True">
+                            <t t-foreach="o.dian_document_lines" t-as="dd">
+                                <t t-if="dd.state == 'done' or dd.state == 'sent'">
+                                    <img class="image"
+                                        t-attf-src="data:image/png;base64,{{dd.qr_image}}"
+                                        style="width:115px;height:115px;margin-bottom:1px" />
+                                </t>
+                            </t>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template id="l10n_co_e_invoicing.report_footer">
+            <div class="footer">
+                <div class="row-xs">
+                    <div class=" text-center" style="font-size:12px;" name="footer_company">
+                        <span>Software propio de factura electrónica </span>
+                        <span t-field="o.company_id.partner_id"
+                            t-field-options='{"widget": "contact", "fields": ["name"], "no_marker": true}' />
+                        <span>NIT: </span>
+                        <span t-esc="o.company_id.partner_id.vat" />
+                        <t t-if="o.company_id.partner_id.check_digit  != False">
+                            <span> - </span>
+                            <span t-esc="o.company_id.partner_id.check_digit" />
+                        </t>
+                        <span> - </span>
+                        <span> Odoo </span>
+                        <span t-field="o.company_id.partner_id"
+                            t-field-options='{"widget": "contact", "fields": ["name"], "no_marker": true}' />
+                    </div>
+                    <div class="text-center" style="border-top: 1px solid black;">
+
+                        <ul class="list-inline">
+                            <li>Pagina:</li>
+                            <li class="list-inline-item">
+                                <span class="page" />
+                            </li>
+                            <li class="list-inline-item">/</li>
+                            <li class="list-inline-item">
+                                <span class="topage" />
+                            </li>
+                        </ul>
+
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- <?xml version="1.0"?> -->
+        <template id="report_e_invoice_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <!-- ENCABEZADO -->
+                    <div class="header">
+                        <div class="row">
+                            <!-- Logo -->
+                            <div class="col-3 mb-4">
+                                <img t-if="o.company_id.logo"
+                                    t-att-src="image_data_uri(o.company_id.logo)"
+                                    style="max-height: 100px; max-width: 270px;" class="img-fluid"
+                                    alt="Logo" />
+                            </div>
+                            <!-- Información de la empresa -->
+                            <div class="col-6 text-center" style="font-size:12px;"
+                                name="company_address">
+                                <b>
+                                    <div t-field="o.company_id.partner_id"
+                                        t-field-options='{"widget": "contact", "fields": ["name"], "no_marker": true}' />
+                                </b>
+                                <span>NIT: </span>
+                                <span t-esc="o.company_id.partner_id.identification_document" />
+
+                                <t t-if="o.company_id.partner_id.check_digit != False">
+                                    <span> - </span>
+                                    <span t-esc="o.company_id.partner_id.check_digit" />
+                                </t>
+                                <p
+                                    style="color: #000; font-size:12px; margin: 0 !important; padding:0 !important; white-space:pre-wrap;"
+                                    t-esc="o.company_id.report_header_info" />
+                                <t>
+                                    <span t-esc="o.company_id.partner_id.street" />
+                                    <br />
+                                    <span>
+                                    Teléfono: </span>
+                                    <span t-esc="o.company_id.partner_id.phone" />
+                                    <br />
+                                    <span
+                                        t-esc="o.company_id.partner_id.city" /> - <span
+                                        t-esc="o.company_id.partner_id.country_id.name" />
+                                    <br />
+                                    <span>
+                                    E-mail: </span>
+                                    <span t-esc="o.company_id.partner_id.email" />
+                                </t>
+                            </div>
+                            <!-- Código QR -->
+                            <div class="col-3 text-center">
+                                <t t-if="o.company_id.einvoicing_enabled == True">
+                                    <t t-foreach="o.dian_document_lines" t-as="dd">
+                                        <t t-if="dd.state == 'done' or dd.state == 'sent'">
+                                            <img class="image"
+                                                t-attf-src="data:image/png;base64,{{dd.qr_image}}"
+                                                style="width:115px;height:115px;margin-bottom:1px" />
+                                        </t>
+                                    </t>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="article o_report_layout_standard"
+                        t-att-data-oe-model="o and o._name"
+                        t-att-data-oe-id="o and o.id"
+                        t-att-data-oe-lang="o and o.env.context.get('lang')">
+                        <div class="page">
+                            <style type="text/css">
+                                .container {
+                                font-size: 12px;
+                                }
+                                h3 {
+                                font-size: 17px;
+                                font-weight: bold;
+                                }
+                                .table_border {
+                                border: 1px solid black;
+                                }
+                                .all-borders {
+                                border: 1px solid black;
+                                }
+                                .use-border-top {
+                                border-top: 1px solid black;
+                                }
+                                .use-border-left {
+                                border-left: 1px solid black;
+                                }
+                            </style>
+                            <body>
+                                <div style="overflow: visisble !important; padding: 0.8px;">
+                                    <p t-if="o.journal_id.is_einvoicing" style="font-size:10px;"
+                                        class="text-center">
+                                        <br />
+                                        <strong>
+                                            <span t-field="o.journal_id.resolution_text" />
+                                            <br />
+                                            <!-- Responsabilidad y actividad económica -->
+                                            <span
+                                                t-field="o.company_id.partner_id.property_account_position_id.name" />
+                                        </strong>
+                                        <!-- CUFE -->
+                                    </p>
+                                    <hr style="border-top: 1px solid black;"></hr>
+                                    <br />
+                                    <div class="row" id="invoice_info">
+                                        <div class="col-5">
+                                            <p>
+                                                <div id="cliente">
+                                                    <span t-if="o.journal_id.is_support_document">
+                                                            <strong>Proveedor:</strong>
+                                                    </span>
+                                                    <span t-if="not o.journal_id.is_support_document and  o.journal_id.is_einvoicing">
+                                                            <strong>Cliente:</strong>
+                                                    </span>
+                                                    <span t-field="o.partner_id.name" />
+                                                    <br />
+                                                    <span
+                                                        t-field="o.partner_id.document_type_id.name" />
+                                                    <span
+                                                        t-field="o.partner_id.identification_document" />
+                                                    <span t-if="o.partner_id.check_digit"> - </span>
+                                                    <span t-esc="o.partner_id.check_digit" />
+                                                    <br />
+                                                </div>
+
+                                                <div id="direccion">
+                                                    <strong>Dirección:</strong>
+                                                    <span t-field="o.partner_id.street" />
+                                                    <br />
+                                                </div>
+                                                <div id="telefonos">
+                                                    <strong>Teléfonos:</strong>
+                                                    <span t-field="o.partner_id.phone" />
+                                                    <t t-if="o.partner_id.mobile">- <span
+                                                            t-field="o.partner_id.mobile" />
+                                                    </t>
+                                                    <br />
+                                                </div>
+                                                <div id="ciudad">
+                                                    <strong>Ciudad:</strong>
+                                                    <span t-esc="o.partner_id.city_id.name" />
+                                                    <br />
+                                                </div>
+                                                <div id="email">
+                                                    <strong>Correo electrónico:</strong>
+                                                    <span t-field="o.partner_id.email" />
+                                                    <br />
+                                                </div>
+                                                <div id="do">
+                                                    <strong>DO:</strong>
+                                                    <span t-field="o.orden_compra" />
+                                                    <br />
+                                                </div>
+                                                <div id="eta">
+                                                    <strong>ETA:</strong>
+                                                    <span t-field="o.eta" />
+                                                    <br />
+                                                </div>
+                                                <div id="etd">
+                                                    <strong>ETD:</strong>
+                                                    <span t-field="o.etd" />
+                                                    <br />
+                                                </div>
+                                                <div id="doc_transporte">
+                                                    <strong>Doc. Transporte:</strong>
+                                                    <span t-field="o.doc_transporte" />
+                                                </div>
+                                            </p>
+                                        </div>
+                                        <div class="col-7">
+                                            <div class="row">
+                                                <div class="col-5" style="padding-right: 0;">
+                                                    <strong>
+                                                        <span
+                                                            t-if="o.move_type == 'out_invoice' and o.state == 'posted' and o.journal_id.is_einvoicing">Factura
+                                                            Electrónica de Venta No. </span>
+                                                        <span
+                                                            t-if="o.move_type == 'out_invoice' and o.state == 'draft'">Factura
+                                                            Borrador No. </span>
+                                                        <span
+                                                            t-if="o.move_type == 'out_invoice' and o.state == 'cancel'">Factura
+                                                            Cancelada No. </span>
+                                                        <span
+                                                            t-if="o.move_type == 'out_refund' and o.journal_id.is_einvoicing">Nota
+                                                            crédito de factura electrónica de venta
+                                                            No. </span>
+                                                        <span t-if="o.move_type == 'in_refund'">Nota
+                                                            credito de Proveedor No. </span>
+                                                        <span t-if="o.move_type == 'in_invoice' and not o.journal_id.is_support_document">
+                                                            Factura de Proveedor No. </span>
+                                                        <span t-if="o.move_type == 'in_invoice' and o.journal_id.is_support_document">
+                                                            Documento soporte No. </span>
+                                                    </strong>
+                                                </div>
+                                                <div class="col-7">
+                                                    <span t-field="o.name" />
+                                                </div>
+                                            </div>
+                                            <div class="row" t-if="o.invoice_origin">
+                                                <div class="col-5">
+                                                    <strong>Documento de Origen:</strong>
+                                                </div>
+                                                <div class="col-7">
+                                                    <span t-field="o.invoice_origin" />
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-5">
+                                                    <strong>
+                                                        <span>Vendedor</span>
+                                                    </strong>
+                                                </div>
+                                                <div class="col-7">
+                                                    <span t-field="o.invoice_user_id.name" />
+                                                </div>
+                                            </div>
+
+                                            <div class="row">
+                                                <div class="col-5">
+                                                    <strong>Fecha de Facturación</strong>
+                                                </div>
+                                                <div class="col-7">
+                                                    <span t-field="o.invoice_date" />
+                                                </div>
+                                            </div>
+                                            <div class="row" t-if="o.journal_id.is_einvoicing">
+                                                <div class="col-5">
+                                                    <strong>Fecha de Validación:</strong>
+                                                </div>
+                                                <div class="col-7">
+                                                    <span t-field="o.write_date" />
+                                                </div>
+                                            </div>
+                                            <!--<div
+                                            class="row">
+                                                <div class="col-8" style="border-top: 1px solid black;">
+                                                    <strong>Fecha de Entrega:</strong>
+                                                </div>
+                                                <div class="col-4" style="border-top: 1px solid black;">
+                                                    <span t-field="o.fecha_entrega"/>
+                                                </div>
+                                            </div>-->
+                                            <div class="row">
+                                                <div class="col-5">
+                                                    <strong>Fecha de Vencimiento</strong>
+                                                </div>
+                                                <div class="col-7">
+                                                    <span t-field="o.invoice_date_due" />
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-5">
+                                                    <strong>Medio de Pago:</strong>
+                                                </div>
+                                                <div class="col-7">
+                                                    <span t-field="o.payment_mean_code_id.name" />
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-5">
+                                                    <strong>Plazo de Pago:</strong>
+                                                </div>
+                                                <div class="col-7">
+                                                    <span t-field="o.invoice_payment_term_id.name" />
+                                                </div>
+                                            </div>
+                                            <t t-if="o.invoice_origin">
+                                                <div class="row">
+                                                    <div class="col-5">
+                                                        <strong>Orden de referencia:</strong>
+                                                    </div>
+                                                    <div class="col-7">
+                                                        <span t-field="o.invoice_origin" />
+                                                    </div>
+                                                </div>
+                                            </t>
+                                            <t t-if="o.ref">
+                                                <div class="row">
+                                                    <div class="col-5">
+                                                        <strong>Referencia de documento:</strong>
+                                                    </div>
+                                                    <div class="col-7">
+                                                        <span t-field="o.ref" />
+                                                    </div>
+                                                </div>
+                                            </t>
+                                            <!--<t
+                                            t-if="o.despatch_document_reference">
+                                            <div class="row">
+                                                <div class="col-8" style="border-top: 1px solid black;">
+                                                    <strong>Orden de despacho:</strong>
+                                                </div>
+                                                <div class="col-4" style="border-top: 1px solid black;">
+                                                    <span t-field="o.despatch_document_reference"/>
+                                                </div>
+                                            </div>
+                                             </t>
+                                            <t t-if="o.receipt_document_reference">
+                                            <div class="row">
+                                                <div class="col-8" style="border-top: 1px solid black;">
+                                                    <strong>Hoja de entrada de servicio:</strong>
+                                                </div>
+                                                <div class="col-4" style="border-top: 1px solid black;">
+                                                    <span t-field="o.receipt_document_reference"/>
+                                                </div>
+                                            </div>
+                                             </t>-->
+                                            <div class="row">
+                                                <div class="col-3">
+                                                    <strong>Forma de Pago:</strong>
+                                                </div>
+                                                <div class="col-2">
+                                                    <span t-field="o.payment_mean_id.name" />
+                                                </div>
+                                                <div class="col-3">
+                                                    <strong>Moneda: </strong>
+                                                </div>
+                                                <div class="col-4">
+                                                    <span t-field="o.currency_id.name" />
+                                                </div>
+                                            </div>
+                                            <!-- Si es USD o doble moneda -->
+                                            <t
+                                                t-if="o.show_report_cop or o.currency_id.name == 'USD'">
+                                                <div class="row">
+                                                    <div class="col-3">
+                                                        <strong>TRM:</strong>
+                                                    </div>
+                                                    <div class="col-9 text-left"> $<span
+                                                            t-esc="'{0:,.2f}'.format(o.get_cop_trm())"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </t>
+
+                                        </div>
+                                    </div>
+
+                                    <hr style="border-top: 1px solid black;"></hr>
+                                    <p t-if="o.journal_id.is_einvoicing" style="font-size:10px;"
+                                        class="text-center">
+                                        <br />
+                                        <strong>
+                                            <span>
+                                                <b>Representación gráfica de la </b>
+                                            </span>
+                                            <span t-if="o.move_type == 'out_invoice'">
+                                                <b>factura </b>
+                                            </span>
+                                            <span t-if="o.move_type == 'out_refund'">
+                                                <b>nota crédito </b>
+                                            </span>
+                                            <span>
+                                                <b>electrónica de Venta</b>
+                                            </span>
+                                        </strong>
+                                        <!-- CUFE -->
+                                        <br />
+                                        <span t-if="o.move_type == 'out_refund'">CUDE: </span>
+                                        <span t-if="o.move_type == 'out_invoice'">CUFE: </span>
+                                        <t t-if="o.dian_document_lines">
+                                            <span t-field="o.dian_document_lines[0].cufe_cude" />
+                                        </t>
+                                    </p>
+
+                                    <div id="invoice_lines" class="row" style="margin-top:5px;">
+                                        <t t-set="total_lines" t-value="0"></t>
+                                        <table t-attf-class="table table-sm"
+                                            style="width:100%; border: 1px solid #dee2e6 !important; border-collapse: collapse;">
+                                            <thead style="display: table-row-group;">
+                                                <tr
+                                                    style="page-break-inside:avoid; border-top:none !important;">
+                                                    <th style="border-top:none !important;">Nº</th>
+                                                    <th style="border-top:none !important;">
+                                                        Descripción</th>
+                                                    <th style="border-top:none !important;"
+                                                        class="text-right">Cantidad</th>
+                                                    <t t-if='not o.company_id.hide_uom'>
+                                                        <t t-if="o.invoice_line_ids.product_uom_id">
+                                                            <th style="border-top:none !important;"
+                                                                width="12%" class="text-right">Unidad
+                                                                de
+                                                                medida</th>
+                                                        </t>
+                                                    </t>
+                                                    <t t-if="not o.invoice_line_ids.product_uom_id">
+                                                        <th style="border-top:none !important;"
+                                                            width="0%" class="text-right"></th>
+                                                    </t>
+                                                    <t
+                                                        t-if="o.show_report_cop and o.currency_id.name == 'COP'">
+                                                        <th style="border-top:none !important;"
+                                                            width="15%" class="text-right">Valor
+                                                            unitario USD</th>
+                                                        <th style="border-top:none !important;"
+                                                            width="15%" class="text-right">Valor
+                                                            unitario COP</th>
+                                                    </t>
+                                                    <!-- Si la moneda es USD, mostrar el total en
+                                                    COP -->
+                                                    <t
+                                                        t-if="o.show_report_cop and o.currency_id.name == 'USD'">
+                                                        <th style="border-top:none !important;"
+                                                            width="15%" class="text-right">Valor
+                                                            unitario COP</th>
+                                                        <th style="border-top:none !important;"
+                                                            width="15%" class="text-right">Valor
+                                                            unitario USD</th>
+                                                    </t>
+                                                    <!-- Si no es doble moneda -->
+                                                    <t t-if="not o.show_report_cop">
+                                                        <th style="border-top:none !important;"
+                                                            width="15%" class="text-right">Valor
+                                                            unitario <span t-field="o.currency_id.name" />
+                                                        </th>
+                                                    </t>
+                                                    <t t-if='not o.company_id.hide_iva'>
+                                                        <th style="border-top:none !important;"
+                                                            width="12%" class="text-right">% IVA</th>
+                                                    </t>
+                                                    <t t-if='not o.company_id.hide_discount'>
+                                                        <th style="border-top:none !important;"
+                                                            width="12%" class="text-right">% Desc.</th>
+                                                    </t>
+                                                    <!-- Si la moneda es COP, mostrar el total en
+                                                    USD -->
+                                                    <t
+                                                        t-if="o.show_report_cop and o.currency_id.name == 'COP'">
+                                                        <th style="border-top:none !important;"
+                                                            width="15%" class="text-right">Valor
+                                                            Total USD</th>
+                                                        <th style="border-top:none !important;"
+                                                            width="15%" class="text-right">Valor
+                                                            Total COP</th>
+                                                    </t>
+                                                    <!-- Si la moneda es USD, mostrar el total en
+                                                    COP -->
+                                                    <t
+                                                        t-if="o.show_report_cop and o.currency_id.name == 'USD'">
+                                                        <th style="border-top:none !important;"
+                                                            width="15%" class="text-right">Valor
+                                                            Total COP</th>
+                                                        <th style="border-top:none !important;"
+                                                            width="15%" class="text-right">Valor
+                                                            Total USD</th>
+                                                    </t>
+                                                    <!-- Si no es doble moneda -->
+                                                    <t t-if="not o.show_report_cop">
+                                                        <th style="border-top:none !important;"
+                                                            width="15%" class="text-right">Valor
+                                                            Total <span t-field="o.currency_id.name" />
+                                                        </th>
+                                                    </t>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="invoice_tbody"
+                                                style="inline-table; page-break-inside: avoid;">
+                                                <t t-foreach="o.invoice_line_ids" t-as="l">
+                                                    <t t-if="l.product_id">
+                                                        <tr
+                                                            style="page-break-inside:avoid; page-break-after:auto">
+                                                            <t t-set="total_lines"
+                                                                t-value="total_lines+1" />
+                                                            <td>
+                                                                <span t-esc="total_lines" />
+                                                            </td>
+                                                            <td>
+                                                                <span t-field="l.name" />
+                                                            </td>
+                                                            <td class="text-right">
+                                                                <t
+                                                                    t-esc="'{:,}'.format(float(l.quantity))" />
+                                                                <span t-field="l.uom_id"
+                                                                    groups="product.group_uom" />
+                                                            </td>
+                                                            <t t-if='not o.company_id.hide_uom'>
+                                                                <t t-if="l.product_uom_id.name">
+                                                                    <td class="text-right">
+                                                                        <span
+                                                                            t-field="l.product_uom_id.name" />
+                                                                    </td>
+                                                                </t>
+                                                                <t t-if="not l.product_uom_id.name">
+                                                                    <td class="text-right">
+                                                                        <span
+                                                                            t-field="l.product_uom_id.name" />
+                                                                    </td>
+                                                                </t>
+                                                            </t>
+                                                            <!-- Si la moneda es COP, mostrar el
+                                                            total en
+                                                    USD -->
+                                                            <t
+                                                                t-if="o.show_report_cop and o.currency_id.name == 'COP'">
+                                                                <!-- Valor unitario en usd -->
+                                                                <td
+                                                                    class="text-right">
+                                                                    <t
+                                                                        t-esc="'{0:,.2f}'.format(l.price_unit * o.get_usd_trm())" />
+                                                                </td>
+                                                                <!-- Valor unitario en cop -->
+                                                                <td
+                                                                    class="text-right">
+                                                                    <t
+                                                                        t-esc="'{0:,.2f}'.format(l.price_unit)" />
+                                                                </td>
+                                                            </t>
+                                                            <!-- Si la moneda es USD, mostrar el
+                                                            total en
+                                                COP -->
+                                                            <t
+                                                                t-if="o.show_report_cop and o.currency_id.name == 'USD'">
+                                                                <!-- Valor unitario en cop -->
+                                                                <td class="text-right">
+                                                                    <t
+                                                                        t-esc="'{0:,.2f}'.format(l.price_unit * o.get_cop_trm())" />
+
+                                                                </td>
+                                                                <!-- Valor unitario en usd -->
+                                                                <td class="text-right">
+                                                                    <t
+                                                                        t-esc="'{0:,.2f}'.format(l.price_unit)" />
+                                                                </td>
+                                                            </t>
+                                                            <!-- Si no es doble moneda -->
+                                                            <t t-if="not o.show_report_cop">
+                                                                <!-- Valor unitario en moenda -->
+                                                                <td class="text-right">
+                                                                    <t
+                                                                        t-esc="'{0:,.2f}'.format(l.price_unit)" />
+                                                                </td>
+                                                            </t>
+
+                                                            <t t-if='not o.company_id.hide_iva'>
+                                                                <td class="text-right">
+                                                                    <t t-foreach="l.tax_ids"
+                                                                        t-as="tx">
+                                                                        <t t-if="tx.amount&gt;=0"
+                                                                            t-esc="'{:,}'.format(int(tx.amount))" />
+                                                                    </t>
+                                                                </td>
+                                                            </t>
+                                                            <t t-if='not o.company_id.hide_discount'>
+                                                                <td class="text-right">
+                                                                    <t
+                                                                        t-esc="'{0:,.2f}'.format(l.discount)" />
+                                                                    <t t-esc="'%'" />
+                                                                </td>
+                                                            </t>
+                                                            <!-- Si la moneda es COP, mostrar el
+                                                            total en
+                                                    USD -->
+                                                            <t
+                                                                t-if="o.show_report_cop and o.currency_id.name == 'COP'">
+                                                                <!-- Valor total en usd -->
+                                                                <td class="text-right">
+                                                                    <t
+                                                                        t-esc="'{0:,.2f}'.format(l.price_subtotal * o.get_usd_trm())" />
+                                                                </td>
+                                                                <!-- Valor total en cop -->
+                                                                <td class="text-right">
+                                                                    <t
+                                                                        t-esc="'{0:,.2f}'.format(l.price_subtotal)" />
+                                                                </td>
+                                                            </t>
+                                                            <!-- Si la moneda es USD, mostrar el
+                                                total en
+                                    COP -->
+                                                            <t
+                                                                t-if="o.show_report_cop and o.currency_id.name == 'USD'">
+                                                                <!-- Valor total en cop -->
+                                                                <td class="text-right">
+                                                                    <t
+                                                                        t-esc="'{0:,.2f}'.format(l.price_subtotal * o.get_cop_trm())" />
+                                                                </td>
+                                                                <!-- Valor total en usd -->
+                                                                <td class="text-right">
+                                                                    <t
+                                                                        t-esc="'{0:,.2f}'.format(l.price_subtotal)" />
+                                                                </td>
+                                                            </t>
+                                                            <!-- Si no es doble moneda -->
+                                                            <t t-if="not o.show_report_cop">
+                                                                <!-- Valor total en moenda -->
+                                                                <td class="text-right">
+                                                                    <t
+                                                                        t-esc="'{0:,.2f}'.format(l.price_subtotal)" />
+                                                                </td>
+                                                            </t>
+                                                        </tr>
+                                                    </t>
+                                                </t>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div class="row"
+                                        style="margin-top:5px; page-break-inside: avoid;">
+                                        <table t-attf-class="table"
+                                            style="width:100%; page-break-inside: avoid;">
+                                            <t t-foreach="o.invoice_line_ids" t-as="l">
+                                                <t t-if="not l.product_id">
+                                                    <tr
+                                                        style="page-break-inside:avoid; page-break-after:auto">
+                                                        <td>
+                                                            <span t-field="l.name" />
+                                                        </td>
+                                                    </tr>
+                                                </t>
+                                            </t>
+                                        </table>
+                                    </div>
+
+                                    <div class="row"
+                                        style="margin-top:5px; page-break-inside: avoid;">
+                                        <table t-attf-class="table"
+                                            style="width:100%; page-break-inside: avoid;">
+                                            <tr style="page-break-inside: avoid;">
+                                                <td>
+                                                    <strong>Total líneas de factura</strong>
+                                                    <span t-esc="total_lines" />
+                                                    <br />
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+
+                                    <div id="invoice_totals" class="row all-borders"
+                                        style="margin-top:5px; page-break-inside: avoid;">
+                                        <table t-attf-class="table table-sm"
+                                            style="width:100%; page-break-inside: avoid;">
+                                            <tr
+                                                style="border-top:1px solid black; page-break-inside: avoid;">
+                                                <td>
+                                                </td>
+                                                <td></td>
+                                                <td></td>
+                                                <td>
+                                                </td>
+                                                <!-- Si es USD o doble moneda -->
+                                                <t
+                                                    t-if="o.show_report_cop or o.currency_id.name == 'USD'">
+                                                    <td class="text-right">
+                                                        <strong>Valor USD</strong>
+                                                    </td>
+                                                </t>
+                                                <!-- Si es cop o doble moneda -->
+                                                <t
+                                                    t-if="o.show_report_cop or o.currency_id.name == 'COP'">
+                                                    <td class="text-right">
+                                                        <strong>Valor COP</strong>
+                                                    </td>
+                                                </t>
+
+                                            </tr>
+                                            <tr
+                                                style="border-top:1px solid black; page-break-inside: avoid;">
+                                                <td>
+                                                    <div id="tletras">
+                                                        <t t-set="total_letras"
+                                                            t-value="o.currency_id.amount_to_text(o.amount_total)" />
+                                                        <t
+                                                            t-if="o.currency_id.name == 'COP' and 'Peso' in total_letras and int(o.amount_total) != 1">
+                                                            <t t-set="total_letras"
+                                                                t-value="total_letras.replace('Peso', 'Pesos')" />
+                                                        </t>
+                                                        <t
+                                                            t-if="o.currency_id.name == 'USD' and 'Dollars' in total_letras">
+                                                            <t t-set="total_letras"
+                                                                t-value="total_letras.replace('Dollars', 'Dolares')" />
+                                                        </t>
+                                                        <t
+                                                            t-if="o.currency_id.name == 'USD' and 'Dollar' in total_letras">
+                                                            <t t-set="total_letras"
+                                                                t-value="total_letras.replace('Dollar', 'Dolar')" />
+                                                        </t>
+                                                        <t
+                                                            t-if="o.currency_id.name in ('USD','EUR') and 'Cents' in total_letras">
+                                                            <t t-set="total_letras"
+                                                                t-value="total_letras.replace('Cents', 'Centavos')" />
+                                                        </t>
+                                                        <t
+                                                            t-elif="o.currency_id.name in ('USD','EUR') and 'Cent' in total_letras">
+                                                            <t t-set="total_letras"
+                                                                t-value="total_letras.replace('Cent', 'Centavo')" />
+                                                        </t>
+                                                        <p class="text-justify">
+                                                            <strong>Total en letras: </strong>
+                                                            <span t-if="o.currency_id"
+                                                                t-esc="total_letras" />
+                                                        </p>
+                                                        <br />
+                                                        <p class="text-justify"
+                                                            style="font-family: sans-serif; font-size:7px;">
+                                                            <span
+                                                                t-esc="o.company_id.tributary_information" />
+                                                        </p>
+
+                                                        <p
+                                                            t-if="o.move_type == 'out_refund' and o.refund_type=='credit'">
+                                                            Reversion de Factura : <span
+                                                                t-field="o.reversed_entry_id"> </span></p>
+                                                    </div>
+                                                </td>
+                                                <td></td>
+                                                <td></td>
+                                                <td>
+                                                    <strong>Subtotal</strong><!--<strong>Total
+                                                    sin impuestos</strong>-->
+                                                </td>
+                                                <!-- Si es USD o doble moneda -->
+                                                <t
+                                                    t-if="o.show_report_cop or o.currency_id.name == 'USD'">
+                                                    <td class="text-right">
+                                                        <t t-if="o.currency_id.name == 'COP'"
+                                                            t-esc="'{0:,.2f}'.format(o.amount_untaxed * o.get_usd_trm())"
+                                                        />
+                                                        <t t-if="o.currency_id.name == 'USD'"
+                                                            t-esc="'{0:,.2f}'.format(o.amount_untaxed)" />
+                                                    </td>
+                                                </t>
+                                                <!-- Si es COP o doble moneda -->
+                                                <t
+                                                    t-if="o.show_report_cop or o.currency_id.name == 'COP'">
+                                                    <td class="text-right">
+                                                        <t t-esc="'$'" />
+
+                                                        <t t-if="o.currency_id.name == 'COP'"
+                                                            t-esc="'{0:,.2f}'.format(o.amount_untaxed)"
+                                                        />
+                                                        <t t-if="o.currency_id.name == 'USD'"
+                                                            t-esc="'{0:,.2f}'.format(o.amount_untaxed * o.get_cop_trm())" />
+                                                    </td>
+                                                </t>
+                                            </tr>
+
+
+                                            <tr
+                                                style="text-align:left; border-bottom:1px solid black page-break-inside: avoid;"
+                                                t-foreach="o.line_ids.filtered(lambda line: line.tax_line_id)"
+                                                t-as="t">
+
+                                                <t t-if="t.tax_line_id.show_in_report">
+                                                    <td />
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td>
+                                                        <t t-if="t.tax_line_id.description">
+                                                            <span
+                                                                t-field="t.tax_line_id.description" />
+                                                        </t>
+                                                        <t t-if="not t.tax_line_id.description">
+                                                            <span t-field="t.tax_line_id.name" />
+                                                        </t>
+                                                    </td>
+                                                    <!-- Si es USD o doble moneda -->
+                                                    <t
+                                                        t-if="o.show_report_cop or o.currency_id.name == 'USD'">
+                                                        <td class="text-right">
+                                                            <t t-esc="o.currency_id.name" />
+                                                            <!-- Si la moneda actual es pesos
+                                                            entonces convertir a dolares -->
+                                                            <t t-if="o.currency_id.name == 'COP'"
+                                                                t-esc="'{0:,.2f}'.format(abs(t.amount_currency))" />
+
+                                                            <!-- Si la moneda es dolares entonces
+                                                            convertir a pesos -->
+                                                            <t t-if="o.currency_id.name == 'USD'"
+                                                                t-esc="'{0:,.2f}'.format(abs(t.amount_currency))" />
+                                                            <span />
+
+                                                        </td>
+                                                    </t>
+                                                    <!-- Si es COP o doble moneda -->
+                                                    <t
+                                                        t-if="o.show_report_cop or o.currency_id.name == 'COP'">
+                                                        <td class="text-right">
+                                                            <t t-esc="'$'" />
+
+                                                            <t t-if="o.currency_id.name == 'USD'"
+                                                                t-esc="'{0:,.2f}'.format(abs(t.amount_currency) * o.get_cop_trm())" />
+
+                                                            <t t-if="o.currency_id.name == 'COP'"
+                                                                t-esc="'{0:,.2f}'.format(abs(t.credit-t.debit))" />
+                                                        </td>
+                                                    </t>
+                                                </t>
+                                            </tr>
+                                            <tr
+                                                style="text-align:left; border-bottom:1px solid black page-break-inside: avoid;">
+                                                <td />
+                                                <td></td>
+                                                <td></td>
+                                                <td>
+                                                    <strong>Total Ingreso Propio:</strong>
+                                                </td>
+                                                <!-- Si es USD o doble moneda -->
+                                                <t
+                                                    t-if="o.show_report_cop or o.currency_id.name == 'USD'">
+                                                    <td class="text-right">
+                                                        <t t-esc="o.currency_id.name" />
+                                                        <t t-if="o.currency_id.name == 'USD'"
+                                                            t-esc="'{0:,.2f}'.format(o.total_ingreso_propio)" />
+
+                                                        <t t-if="o.currency_id.name == 'COP'"
+                                                            t-esc="'{0:,.2f}'.format(o.total_ingreso_propio * o.get_usd_trm())" />
+
+                                                    </td>
+                                                </t>
+                                                <!-- Si es COP o doble moneda -->
+                                                <t
+                                                    t-if="o.show_report_cop or o.currency_id.name == 'COP'">
+                                                    <td class="text-right">
+                                                        <t t-esc="'$'" />
+
+                                                        <t t-if="o.currency_id.name == 'COP'"
+                                                            t-esc="'{0:,.2f}'.format(o.total_ingreso_propio)" />
+
+                                                        <t t-if="o.currency_id.name == 'USD'"
+                                                            t-esc="'{0:,.2f}'.format(o.total_ingreso_propio * o.get_cop_trm())" />
+                                                    </td>
+                                                </t>
+                                            </tr>
+                                            <tr
+                                                style="text-align:left; border-bottom:1px solid black page-break-inside: avoid;">
+                                                <td />
+                                                <td></td>
+                                                <td></td>
+                                                <td>
+                                                    <strong>Total Ingreso Tercero:</strong>
+                                                </td>
+                                                <!-- Si es USD o doble moneda -->
+                                                <t
+                                                    t-if="o.show_report_cop or o.currency_id.name == 'USD'">
+                                                    <td class="text-right">
+                                                        <t t-esc="o.currency_id.name" />
+                                                        <t t-if="o.currency_id.name == 'USD'"
+                                                            t-esc="'{0:,.2f}'.format(o.total_ingreso_tercero)" />
+
+                                                        <t t-if="o.currency_id.name == 'COP'"
+                                                            t-esc="'{0:,.2f}'.format(o.total_ingreso_tercero * o.get_usd_trm())" />
+
+                                                    </td>
+                                                </t>
+                                                <!-- Si es COP o doble moneda -->
+                                                <t
+                                                    t-if="o.show_report_cop or o.currency_id.name == 'COP'">
+                                                    <td class="text-right">
+                                                        <t t-esc="'$'" />
+                                                        <t t-if="o.currency_id.name == 'COP'"
+                                                            t-esc="'{0:,.2f}'.format(o.total_ingreso_tercero)" />
+
+                                                        <t t-if="o.currency_id.name == 'USD'"
+                                                            t-esc="'{0:,.2f}'.format(o.total_ingreso_tercero * o.get_cop_trm())" />
+                                                    </td>
+                                                </t>
+
+                                            </tr>
+
+                                            <tr
+                                                id="invoice_total"
+                                                style="text-align:left; border-bottom:1px solid black; page-break-inside: avoid;">
+                                                <td>
+                                                    <strong>Total a pagar</strong>
+                                                </td>
+                                                <td></td>
+                                                <td></td>
+                                                <td />
+                                                <!-- Si es USD o doble moneda -->
+                                                <t
+                                                    t-if="o.show_report_cop or o.currency_id.name == 'USD'">
+                                                    <td class="text-right"
+                                                        style="white-space: nowrap;">
+                                                        <t t-esc="o.currency_id.name" />
+
+                                                        <t t-if="o.currency_id.name == 'USD'"
+                                                            t-esc="'{0:,.2f}'.format(o.amount_total)" />
+
+
+                                                        <t t-if="o.currency_id.name == 'COP'"
+                                                            t-esc="'{0:,.2f}'.format(o.amount_total * o.get_usd_trm())" />
+                                                    </td>
+                                                </t>
+                                                <!-- Si es COP o doble moneda -->
+                                                <t
+                                                    t-if="o.show_report_cop or o.currency_id.name == 'COP'">
+                                                    <td class="text-right"
+                                                        style="white-space: nowrap;">
+
+                                                        <t t-esc="'$'" />
+
+                                                        <t t-if="o.currency_id.name == 'COP'"
+                                                            t-esc="'{0:,.2f}'.format(o.amount_total)" />
+
+
+                                                        <t t-if="o.currency_id.name == 'USD'"
+                                                            t-esc="'{0:,.2f}'.format(o.amount_total * o.get_cop_trm())" />
+                                                    </td>
+                                                </t>
+                                            </tr>
+
+                                        </table>
+                                    </div>
+
+                                    <div class="row all-borders mb-4"
+                                        style="margin-top: 5px; page-break-inside: avoid;">
+                                        <div class="col">
+                                            <div class="row">
+                                                <div class="col text-justify"
+                                                    style="page-break-inside: avoid;">
+                                                    <span style="width:30%">
+                                                        <br />
+                                                        <strong>Observaciones:</strong>
+                                                        <span t-field="o.narration" />
+                                                        <br />
+                                                    </span>
+                                                    <br />
+                                                    <p class="text-justify" style="font-size:8px;">
+                                                        <!-- Tipo de resolución -->
+                                                        <span
+                                                            t-if="not o.journal_id.is_einvoicing">
+                                                        Factura por computador.
+                                                        </span>
+                                                        <span
+                                                            t-if="o.journal_id.is_einvoicing">
+                                                        Factura electrónica.
+                                                        </span>
+                                                        1. Esta factura de venta obra como título
+                                                        valor, cumple con todos los requisitos y
+                                                        presta mérito ejecutivo de acuerdo al
+                                                        artículo 1 de la ley 1231 de julio 17 de
+                                                        2008, que modifica el artículo 772 del
+                                                        código de comercio. 2. La mora en el pago
+                                                        causa intereses máximo legal vigente de
+                                                        acuerdo a la ley, a partir de la fecha de
+                                                        vencimiento. 3. Se hace constar que la firma
+                                                        de la persona distinta al comprador implica
+                                                        que dicha persona está autorizada
+                                                        expresamente por el comprador para firmar,
+                                                        confesar la deuda y obligar al comprador a
+                                                        su cancelación. 4. El comprador o su
+                                                        autorizado dan firma en señal de aceptación
+                                                        y de haber recibido real y materialmente la
+                                                        mercancía de que trata y aceptan el valor
+                                                        estipulado en la misma, excusando el
+                                                        protesto, la presentación, la noticia de
+                                                        rechazo y el reconocimiento de firmas. <br />
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row all-borders"
+                                        style="margin-top: 5px; page-break-inside: avoid;">
+                                        <div class="col" style="page-break-inside: avoid;">
+                                            <div class="row">
+                                                <div class="col">
+                                                    <table
+                                                        style="width:100%; page-break-inside: avoid;">
+                                                        <tr style="page-break-inside: avoid;">
+                                                            <td class="text-left" style="width:30%">
+                                                                <strong>
+                                                                    <span
+                                                                        t-field="o.company_id.name" />
+                                                                </strong>
+                                                            </td>
+                                                            <td class="text-center"
+                                                                style="border-left:1px solid black;width:20%; font-size:9px;"
+                                                                rowspan="3">
+                                                                <br /><br /> Con la aceptación de
+                                                                esta factura se dan por aprobadas
+                                                                las condiciones de garantía
+                                                                mencionadas. </td>
+                                                            <td class="text-left"
+                                                                style="border-left:1px solid black;width:50%">
+                                                                <strong>RECIBÍ CONFORME:</strong>
+                                                                <br />
+                                                                <br />
+                                                                <br />
+                                                                <br />
+                                                            </td>
+                                                        </tr>
+                                                        <tr style="page-break-inside: avoid;">
+                                                            <td />
+                                                            <td class="text-center"
+                                                                style="border-left: 1px solid black;border-bottom: 1px solid black;">
+                                                                <strong>Firma y Sello del Cliente</strong>
+                                                                <br />
+                                                            </td>
+                                                        </tr>
+                                                        <tr style="page-break-inside: avoid;">
+                                                            <td class="text-center">
+                                                                <strong>Firma Autorizada</strong>
+                                                            </td>
+                                                            <td
+                                                                style="border-left: 1px solid black;">
+                                                                <strong>FECHA DE RECIBIDA</strong>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p style="page-break-before:always;" />
+                                    </div>
+                                </div>
+                            </body>
+                        </div>
+                    </div>
+                    <div class="footer">
+
+                        <div class="text-center" style="font-size:10px;">
+                            <span>Software propio de factura electrónica </span>
+                            <span t-field="o.company_id.partner_id"
+                                t-field-options='{"widget": "contact", "fields": ["name"], "no_marker": true}' />
+                            <span>NIT: </span>
+                            <span t-esc="o.company_id.partner_id.identification_document" />
+                            <t t-if="o.company_id.partner_id.check_digit != False">
+                                <span> - </span>
+                                <span t-esc="o.company_id.partner_id.check_digit" />
+                            </t>
+                            <span> - </span>
+                            <span> Odoo </span>
+                            <span t-field="o.company_id.partner_id"
+                                t-field-options='{"widget": "contact", "fields": ["name"], "no_marker": true}' />
+                        </div>
+
+
+                        <div class="text-center" style="font-size:10px;">
+                            <t t-foreach="o.journal_id.sequence_id.date_range_ids" t-as="resolucion">
+                                <t t-if="resolucion.active_resolution">
+                                    <div>RESOLUCIÓN DE FACTURACIÓN ELECTRÓNICA DIAN No. <t t-esc="resolucion.resolution_number" /></div>
+                                    <div>HABILITADA DESDE <t t-esc="resolucion.number_from" /> a <t t-esc="resolucion.number_to" /></div>
+                                    <div>DEL <t t-esc="resolucion.date_from.strftime('%d/%m/%Y')" t-if="resolucion.date_from" />
+                                        al <t t-esc="resolucion.date_to.strftime('%d/%m/%Y')" t-if="resolucion.date_to" />
+                                    </div>
+                                    <!-- Rompe el bucle una vez encontrada la resolución activa -->
+                                    <t t-break="True"/>
+                                </t>
+                            </t>
+                        </div>
+
+                        <div class="text-center" style="border-top: 1px solid black;">
+                            <ul class="list-inline">
+                                <li>Pagina:</li>
+                                <li class="list-inline-item">
+                                    <span class="page" />
+                                </li>
+                                <li class="list-inline-item">/</li>
+                                <li class="list-inline-item">
+                                    <span class="topage" />
+                                </li>
+                            </ul>
+                        </div>
+
+                    </div>
+                </t>
+            </t>
+        </template>
+
+        <!-- <?xml version="1.0"?> -->
+        <template id="report_e_invoice_layout">
+            <t t-if="not o" t-set="o" t-value="doc" />
+            <t t-if="not company">
+                <!-- Multicompany -->
+                <t t-if="company_id">
+                    <t t-set="company" t-value="company_id" />
+                </t>
+                <t t-elif="o and 'company_id' in o">
+                    <t t-set="company" t-value="o.company_id.sudo()" />
+                </t>
+                <t t-else="else">
+                    <t t-set="company" t-value="res_company" />
+                </t>
+            </t>
+
+            <div t-attf-class="header o_company_#{company.id}_layout"
+                style="border: 0px solid red; width: 100%; font-family: sans-serif; font-size: 12px; height: 105px;">
+                <style type="text/css"> #top { width: 100%; height: 100px; border: 0px solid green;
+                    } #bottom { width: 100%; height: 55px; border: 0px solid red; } #a { float:
+                    left; width: 15%; height: 100%; border-style: none none solid solid;
+                    border-width: 1px; border-color: black; padding: 4px; } #b { float: left;
+                    border-bottom: 1px solid black; width: 30%; height: 100%; font-size: 10px;
+                    padding: 4px; } #c{ float: left; border: 0px solid black; width: 55%; height:
+                    100%; text-align: center; } <!--#d
+                    {-->
+                    <!--        border-style: none none solid solid; -->
+                    <!--        border-width: 1px; -->
+                    <!--        border-color: blue-->
+                    <!--    }-->
+
+                    <!-- #d {
+                        float: left;
+                        border: 0px solid black;
+                        width: 77%;
+                        height: 100%;
+                        padding: 10px;
+                        text-align: left;
+                        align: justify;
+                    }
+                    #e{
+                        float: left;
+                        border: 0px solid black;
+                        width: 23%;
+                        height: 100%;
+                        padding: 5px;
+                        text-align: left;
+                    } -->
+                </style>
+                <div id="top">
+                    <div id="a">
+                        <!--<p>Hallo</p>-->
+                        <img t-if="company.logo" t-att-src="image_data_uri(company.logo)"
+                            style="width: 100%; height: 100%; display: block; margin: auto; border: 0px solid red;"
+                            alt="Logo" />
+                    </div>
+                    <div id="b">
+                        <!--<p>wie
+                        geht's</p>-->
+                        <h7>NIT: <t t-esc="company.vat" /></h7>
+                        <br />
+                        <span t-field="o.company_id.tributary_information"
+                            t-options="{'widget': 'html'}" />
+                    </div>
+                    <div id="c">
+                        <!--<p>wie
+                        spät ist es?</p>-->
+                        <h6>
+                            <t t-if="o.move_type == 'out_invoice'">
+                                <strong>FACTURA ELECTRONICA DE VENTA N°</strong>
+                            </t>
+                            <t t-elif="o.move_type == 'out_refund' and o.refund_type=='credit'">
+                                <strong>NOTA CREDITO ELECTRONICA DE VENTA</strong>
+                            </t>
+                            <t t-elif="o.move_type == 'out_refund' and o.refund_type=='debit'">
+                                <strong>NOTA DEBITO ELECTRONICA DE VENTA</strong>
+                            </t>
+                            <b>
+                                <t t-esc="o.name" />
+                            </b>
+                        </h6>
+                        <t t-esc="o.journal_id.resolution_text" t-options="{'widget': 'html'}" />
+                    </div>
+                </div>
+                <!--<div
+                style="border-bottom: 1px solid #CACCC6; height: 20px;">-->
+                <!--</div>-->
+            </div>
+
+            <div t-attf-class="article o_report_layout_standard o_company_#{company.id}_layout"
+                t-att-data-oe-model="o and o._name" t-att-data-oe-id="o and o.id"
+                t-att-data-oe-lang="o and o.env.context.get('lang')">
+                <t t-call="web.address_layout" />
+                <t t-raw="0" />
+            </div>
+
+            <div t-attf-class="footer o_standard_footer o_company_#{company.id}_layout">
+                <style>
+                    #div_f {
+                    font-family: sans-serif;
+                    font-size: 12px;
+                    }
+                </style>
+                <div id="div_f" class="text-center" style="border-top: 1px solid black;">
+                    <ul class="list-inline mb4">
+
+                        <li t-if="company.phone" class="list-inline-item d-inline">Phone: <span
+                                t-field="company.phone" /></li>
+                        <li t-if="company.email" class="list-inline-item d-inline">Email: <span
+                                t-field="company.email" /></li>
+                        <li t-if="company.website" class="list-inline-item d-inline">Web: <span
+                                t-field="company.website" /></li>
+                        <li t-if="company.vat" class="list-inline-item d-inline"><t
+                                t-esc="company.country_id.vat_label or 'Tax ID'" />: <span
+                                t-field="company.vat" /></li>
+                        <li t-if="company.street" class="list-inline-item d-inline">Dir: <span
+                                t-field="company.street" /> <span t-field="company.street2" /> <span
+                                t-field="company.state_id.name" /> <span
+                                t-field="company.country_id.name" /></li>
+                    </ul>
+
+                    <div name="financial_infos">
+                        <span t-field="company.report_footer" />
+                    </div>
+
+                    <div t-if="report_type == 'pdf'" class="text-muted"> Page: <span class="page" />
+                        / <span class="topage" />
+                    </div>
+                </div>
+            </div>
+        </template>
+    </data>
+</odoo>
