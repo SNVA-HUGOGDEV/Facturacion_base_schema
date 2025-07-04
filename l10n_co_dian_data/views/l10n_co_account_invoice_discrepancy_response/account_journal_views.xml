@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_account_journal_form" model="ir.ui.view">
+            <field name="model">account.journal</field>
+            <field name="inherit_id" ref="account.view_account_journal_form" />
+            <field name="arch" type="xml">
+                <xpath
+                    expr="//page[@id='outbound_payment_settings']//group[@name='outgoing_payment']"
+                    position="after">
+                    <group name="debit_note_sequence" string="Secuencia de nota debito">
+                        <field name="debit_note_sequence" />
+                        <field name="debit_note_sequence_number_next" />
+                        <field name="debit_note_sequence_id" required="0" />
+                    </group>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

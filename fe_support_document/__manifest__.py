@@ -1,0 +1,15 @@
+# -*- coding: utf-8 -*-
+{   'name': 'Documento Soporte',
+    'author': 'Dracosoft y Coondev SAS',
+    'email': 'soporte@coondev.com.co',
+    'website': 'https://coondev.odoo.com/',
+    'version': '15.0.1',
+    'depends': ['base', 'l10n_co_e_invoicing'],
+    'data': [   'security/res_groups.xml',
+                'security/ir.model.access.csv',
+                'views/account_journal_views.xml',
+                'views/account_invoice_views.xml'],
+    'application': True,
+    'auto_install': False,
+    'installable': True,
+    'currency': 'COP'}
