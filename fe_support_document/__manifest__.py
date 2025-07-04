@@ -1,0 +1,16 @@
+# -*- coding: utf-8 -*-
+{   'name': 'Documento Soporte nbt',
+    'author': 'NIMBUTECH S.A.S',
+    'email': 'desarrollo.odoo@nimbutech.com',
+    'website': 'https://www.nimbutech.com/',
+    'license': 'OPL-1',
+    'version': '17.0',
+    'depends': ['base', 'l10n_co_e_invoicing'],
+    'data': [   'security/res_groups.xml',
+                'security/ir.model.access.csv',
+                'views/account_journal_views.xml',
+                'views/account_invoice_views.xml'],
+    'application': True,
+    'auto_install': False,
+    'installable': True,
+    'currency': 'COP'}
