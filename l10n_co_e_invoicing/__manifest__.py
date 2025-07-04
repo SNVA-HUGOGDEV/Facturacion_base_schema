@@ -13,6 +13,7 @@
                    'od_journal_sequence'],
     'external_dependencies': {'python': ['validators', 'OpenSSL', 'xades']},
     'data': [   'security/ir.model.access.csv',
+                'security/ir_rules.xml',
                 'views/account_invoice_views.xml',
                 'views/account_invoice_dian_document_views.xml',
                 'views/account_journal_views.xml',
