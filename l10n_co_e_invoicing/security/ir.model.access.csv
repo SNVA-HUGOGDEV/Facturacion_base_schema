@@ -1,6 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_account_invoice_dian_document,account.invoice.dian.document,model_account_invoice_dian_document,base.group_user,1,1,1,1
 access_einvoice_notification_group,einvoice.notification.group,model_einvoice_notification_group,base.group_user,1,1,1,1
-access_account_invoice_dian_document_line,account.invoice.dian.document.line,model_account_invoice_dian_document_line,base.group_user,1,1,1,1
 access_account_debit_note,account.debit.note,model_account_debit_note,base.group_user,1,1,1,1
+access_account_invoice_dian_document_line,account.invoice.dian.document.line,model_account_invoice_dian_document_line,base.group_user,1,1,1,1
+access_account_invoice_dian_document,account.invoice.dian.document,model_account_invoice_dian_document,base.group_user,1,1,1,1
 access_product_scheme,product.scheme,model_product_scheme,base.group_user,1,1,1,1
